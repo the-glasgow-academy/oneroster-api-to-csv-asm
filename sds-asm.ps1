@@ -67,9 +67,13 @@ $classes = Get-ApiContent @pConn -Endpoint "classes" -all
 $classes.classes |
 Where-object sourcedid -notin $blacklist | 
 select @{n = 'class_id'; e = { $_.sourcedId } },
-@{n = 'location_id'; e = { $_.school.sourcedId -join ',' } },
-@{n = 'class_number'; e = { $_.classCode } } |
-export-csv ./mscsv/section.csv
+@{n = 'class_number'; e = { $null } },
+@{n = 'course_id'; e = { $_.course.sourcedId } },
+@{n = 'instructor_id'; e = { $null } },
+@{n = 'instructor_id_2'; e = { $null } },
+@{n = 'instructor_id_3'; e = { $null } },
+@{n = 'location_id'; e = { $_.school.sourcedId -join ',' } } |
+export-csv ./csv-asm/classes.csv
 
 # Student enrollment
 $senrollments = Get-ApiContent @pConn -Endpoint "enrollments?filter=role='student' AND status='Y'" -all
