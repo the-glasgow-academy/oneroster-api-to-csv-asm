@@ -60,11 +60,11 @@ select @{n = 'course_id'; e = { $_.sourcedId } },
 export-csv ./csv-asm/courses.csv
 
 # classes csv
-$AS = Get-ApiContent @pConn -Endpoint "academicSessions" -all
 $blacklist = (Initialize-BlacklistClass).sourcedid
+$instructors = Get-ApiContent @pConn -Endpoint "enrollments?filter=role='teacher'" -all
 
 $classes = Get-ApiContent @pConn -Endpoint "classes" -all
-$classes.classes |
+$classesfmt = $classes.classes |
 Where-object sourcedid -notin $blacklist | 
 select @{n = 'class_id'; e = { $_.sourcedId } },
 @{n = 'class_number'; e = { $null } },
@@ -72,8 +72,20 @@ select @{n = 'class_id'; e = { $_.sourcedId } },
 @{n = 'instructor_id'; e = { $null } },
 @{n = 'instructor_id_2'; e = { $null } },
 @{n = 'instructor_id_3'; e = { $null } },
-@{n = 'location_id'; e = { $_.school.sourcedId -join ',' } } |
-export-csv ./csv-asm/classes.csv
+@{n = 'location_id'; e = { $_.school.sourcedId -join ',' } } 
+
+foreach ($c in $classesfmt) {
+    $i = $instructors.enrollments | where-object { $_.class.sourcedId -eq $c.class_id }
+    if ($i) {$c.instructor_id = $i.user.sourcedId}
+    if ($i -gt 1) {
+        $n = 2
+        foreach ($t in $i[2..3]) {
+            $c.instructor_id_$n = $t.user.sourcedId
+            $n++
+        }
+    }
+}
+$classesfmt | export-csv ./csv-asm/classes.csv
 
 # roster csv 
 $senrollments = Get-ApiContent @pConn -Endpoint "enrollments?filter=role='student' AND status='Y'" -all
