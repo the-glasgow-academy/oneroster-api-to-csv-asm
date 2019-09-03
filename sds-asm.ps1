@@ -89,17 +89,3 @@ select @{n = 'roster_id'; e = { $_.sourcedId } },
     } 
 } |
 export-csv ./csv-asm/rosters.csv
-
-# teacher roster
-$tenrollments = Get-ApiContent @pConn -Endpoint "enrollments?filter=role='teacher' AND status='Y'" -all
-$tenrollments.Enrollments |
-where-object { $_.class.sourcedid -notin $blacklist } |
-where-object { $_.user.sourcedid -notin $blacklistUser } |
-select @{n = 'Section ID'; e = { $_.class.sourcedId } },
-@{n = 'ID'; e = { 
-        $_.user.sourcedId
-    } 
-} |
-? ID -ne $null |
-export-csv ./mscsv/teacherroster.csv
-
