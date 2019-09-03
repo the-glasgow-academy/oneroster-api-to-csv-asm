@@ -80,7 +80,7 @@ foreach ($c in $classesfmt) {
     if ($i.count -gt 1) {
         $n = 2
         foreach ($t in $i[2..3]) {
-            $c.instructor_id_$n = $t.user.sourcedId
+            $c."instructor_id_$n" = $t.user.sourcedId
             $n++
         }
     }
