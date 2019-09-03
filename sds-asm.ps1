@@ -76,7 +76,7 @@ select @{n = 'class_id'; e = { $_.sourcedId } },
 
 foreach ($c in $classesfmt) {
     $i = $instructors.enrollments | where-object { $_.class.sourcedId -eq $c.class_id }
-    if ($i) {$c.instructor_id = $i.user.sourcedId}
+    if ($i) { $c.instructor_id = $i.user.sourcedId }
     if ($i.count -gt 1) {
         $n = 2
         foreach ($t in $i[2..3]) {
