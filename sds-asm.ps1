@@ -75,19 +75,20 @@ select @{n = 'class_id'; e = { $_.sourcedId } },
 @{n = 'location_id'; e = { $_.school.sourcedId -join ',' } } |
 export-csv ./csv-asm/classes.csv
 
-# Student enrollment
+# roster csv 
 $senrollments = Get-ApiContent @pConn -Endpoint "enrollments?filter=role='student' AND status='Y'" -all
 $senrollments.Enrollments |
 Where-Object { $_.class.sourcedid -notin $blacklist } |
 Where-Object { $_.user.sourcedid -notin $blacklistUser } |
-select @{n = 'class_id'; e = { $_.class.sourcedId } },
+select @{n = 'roster_id'; e = { $_.sourcedId } },
+@{n = 'class_id'; e = { $_.class.sourcedId } },
 @{n = 'student_id'; e = { 
         $id = $_.user.sourcedId
         if ($id.count -gt 1) { $id[0] }
         else { $id }
     } 
 } |
-export-csv ./mscsv/studentenrollment.csv
+export-csv ./csv-asm/rosters.csv
 
 # teacher roster
 $tenrollments = Get-ApiContent @pConn -Endpoint "enrollments?filter=role='teacher' AND status='Y'" -all
