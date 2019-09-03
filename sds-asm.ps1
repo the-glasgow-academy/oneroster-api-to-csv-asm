@@ -1,6 +1,6 @@
 #requies -modules pwsh-module-api-wrapper, ad-user-provisioning
-if (!(test-path ./mscsv)) {
-    new-item -itemtype directory -path ./mscsv 
+if (!(test-path ./csv-asm)) {
+    new-item -itemtype directory -path ./csv-asm
 }
 
 $pConn = @{
