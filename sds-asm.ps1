@@ -34,9 +34,16 @@ Select *, @{ n = 'YearIndex'; e = { ConvertFrom-K12 -Year $_.grades -ToIndex } }
 Where-Object YearIndex -ge 4 | 
 Where-Object SourcedId -notin $blacklistUser |
 Select @{n = 'person_id'; e = { $_.SourcedId } },
-@{n = 'location_id'; e = { $_.orgs.SourcedId -join ',' } },
-@{n = 'sis_username'; e = { $_.Username } } |
-export-csv ./mscsv/student.csv
+@{n = 'person_number'; e = { $null } },
+@{n = 'first_name'; e = { $_.givenName } },
+@{n = 'middle_name'; e = { $null } },
+@{n = 'last_name'; e = { $_.familyName } },
+@{n = 'grade_level'; e = { $null } },
+@{n = 'email_address'; e = { $_.email } },
+@{n = 'sis_username'; e = { $null } },
+@{n = 'password_policy'; e = { "4" } },
+@{n = 'location_id'; e = { $_.orgs.SourcedId -join ',' } } |
+export-csv ./csv-asm/students.csv
 
 # courses csv
 $courses = Get-ApiContent @pConn -Endpoint "courses" -all
