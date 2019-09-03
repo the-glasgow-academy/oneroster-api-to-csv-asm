@@ -13,7 +13,7 @@ $orgs = Get-ApiContent @pConn -Endpoint "orgs" -all
 $orgs.orgs |
 select @{n = 'location_id'; e = { $_.sourcedid } },
 @{n = 'location_name'; e = { $_.name } } |
-export-csv ./mscsv/school.csv
+export-csv ./csv-asm/locations.csv
 
 # users
 $blacklistUser = (Initialize-BlacklistUser).sourcedid
