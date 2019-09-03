@@ -23,9 +23,14 @@ $usersTeachers.Users |
 Where-Object username -ne $null | 
 Where-Object SourcedId -notin $blacklistUser |
 Select @{n = 'person_id'; e = { $_.SourcedId } },
-@{n = 'location_id'; e = { $_.orgs.SourcedId -join ',' } },
-@{n = 'sis_username'; e = { $_.username } } | 
-export-csv ./mscsv/teacher.csv
+@{n = 'person_number'; e = { $null } },
+@{n = 'first_name'; e = { $_.givenName } },
+@{n = 'middle_name'; e = { $null } },
+@{n = 'last_name'; e = { $_.familyName } },
+@{n = 'email_address'; e = { $_.email } },
+@{n = 'sis_username'; e = { $null } },
+@{n = 'location_id'; e = { $_.orgs.SourcedId -join ',' } } |
+export-csv ./csv-asm/staff.csv
 
 # students csv
 $userPupil = Get-ApiContent @pConn -Endpoint "users?filter=role='student' AND status='Y'" -all
