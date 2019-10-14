@@ -20,7 +20,7 @@ $blacklistUser = (Initialize-BlacklistUser).sourcedid
 # staff csv
 $usersTeachers = Get-ApiContent @pConn -Endpoint "users?filter=role='teacher' AND status='Y'" -all
 $usersTeachers.Users |
-Where-Object username -ne $null | 
+Where-Object username -ne $null |
 Where-Object SourcedId -notin $blacklistUser |
 Select @{n = 'person_id'; e = { $_.SourcedId } },
 @{n = 'person_number'; e = { $null } },
@@ -35,8 +35,6 @@ export-csv ./csv-asm/staff.csv
 # students csv
 $userPupil = Get-ApiContent @pConn -Endpoint "users?filter=role='student' AND status='Y'" -all
 $userPupil.Users |
-Select *, @{ n = 'YearIndex'; e = { ConvertFrom-K12 -Year $_.grades -ToIndex } } | 
-Where-Object YearIndex -ge 4 | 
 Where-Object SourcedId -notin $blacklistUser |
 Select @{n = 'person_id'; e = { $_.SourcedId } },
 @{n = 'person_number'; e = { $null } },
@@ -51,7 +49,7 @@ Select @{n = 'person_id'; e = { $_.SourcedId } },
 export-csv ./csv-asm/students.csv
 
 # courses csv
-$courses = Get-ApiContent @pConn -Endpoint "courses" -all
+$courses = Get-ApiContent @pConn -Endpoint "courses?filter=courseCode='TG'" -all
 $courses.courses |
 select @{n = 'course_id'; e = { $_.sourcedId } },
 @{n = 'course_number'; e = { $_.courseCode } },
@@ -63,11 +61,11 @@ export-csv ./csv-asm/courses.csv
 $blacklist = (Initialize-BlacklistClass).sourcedid
 $instructors = Get-ApiContent @pConn -Endpoint "enrollments?filter=role='teacher'" -all
 
-$classes = Get-ApiContent @pConn -Endpoint "classes" -all
+$classes = Get-ApiContent @pConn -Endpoint "classes?filter=classType='homeroom'" -all
 $classesfmt = $classes.classes |
 Where-object sourcedid -notin $blacklist | 
 select @{n = 'class_id'; e = { $_.sourcedId } },
-@{n = 'class_number'; e = { $null } },
+@{n = 'class_number'; e = { $_.classCode } },
 @{n = 'course_id'; e = { $_.course.sourcedId } },
 @{n = 'instructor_id'; e = { $null } },
 @{n = 'instructor_id_2'; e = { $null } },
@@ -102,4 +100,5 @@ select @{n = 'roster_id'; e = { $_.sourcedId } },
         else { $id }
     } 
 } |
+Where-Object { $_.student_id -notin $blacklistUser } |
 export-csv ./csv-asm/rosters.csv
