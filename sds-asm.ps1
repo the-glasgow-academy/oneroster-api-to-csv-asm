@@ -2,7 +2,7 @@ if (!(test-path ./csv-asm)) {
     new-item -itemtype directory -path ./csv-asm
 }
 
-$uri = "https://or.localhost/ims/oneroster/v1p1"
+$uri = $env:GOORS_URL # "https://or.localhost/ims/oneroster/v1p1"
 $getP = @{
     method               = "GET"
     headers              = @{"Authorization" = "bearer $ENV:GOORS_TOKEN" }
@@ -74,24 +74,8 @@ $courses = $coursesGet.courses |
 
 $courses | export-csv ./csv-asm/courses.csv
 
-# roster csv 
-$enrollmentsGet = invoke-restmethod @getP -uri "$uri/enrollments?filter=status='active'"
-
-$enrollmentsStu = $enrollmentsGet.enrollments |
-    Where-Object role -eq 'student' |
-    Where-Object { $_.class.sourcedid -notin $blacklistClasses.sourcedId } |
-    Where-Object { $_.user.sourcedid -notin $blacklistUser.sourcedId } |
-    select-object @{n = 'roster_id'; e = { $_.sourcedId } },
-    @{n = 'class_id'; e = { $_.class.sourcedId } },
-    @{n = 'student_id'; e = { $_.user.sourcedId } } 
-
-$enrollmentsStu | export-csv ./csv-asm/rosters.csv
-
-$enrollmentsInst = $enrollmentsGet.enrollments |
-    Where-Object role -eq 'teacher'
-
 # classes csv
-$classesGet = invoke-restmethod @getP -uri "$uri/classes"
+$classesGet = invoke-restmethod @getP -uri "$uri/classes?filter=status='active'"
 # blacklist
 $blacklistClasses = $classesGet.classes | 
     Where-Object {
@@ -128,3 +112,22 @@ foreach ($c in $classes) {
 }
 
 $classes | export-csv ./csv-asm/classes.csv
+
+# roster csv 
+$enrollmentsGet = invoke-restmethod @getP -uri "$uri/enrollments?filter=status='active'"
+
+$enrollmentsStu = $enrollmentsGet.enrollments |
+    Where-Object role -eq 'student' |
+    Where-Object { $_.class.sourcedid -notin $blacklistClasses.sourcedId } |
+    Where-Object { $_.user.sourcedid -notin $blacklistUser.sourcedId } |
+    select-object @{n = 'roster_id'; e = { $_.sourcedId } },
+    @{n = 'class_id'; e = { $_.class.sourcedId } },
+    @{n = 'student_id'; e = { $_.user.sourcedId } } 
+
+$enrollmentsStu | export-csv ./csv-asm/rosters.csv
+
+$enrollmentsInst = $enrollmentsGet.enrollments |
+    Where-Object role -eq 'teacher'
+
+$date = Get-Date -Format o
+Compress-Archive ./csv-asm/*.csv ./csv-asm-$d.zip
