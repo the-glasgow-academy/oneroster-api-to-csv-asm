@@ -1,8 +1,30 @@
+#requires -psedition core
+$uri = $env:GOORS_URL # "https://or.localhost/ims/oneroster/v1p1"
+$ci = $env:GOORS_CI # API clientid
+$cs = $env:GOORS_CS # API clientsecret
+
+# check for CEDS conversion commandlet
+try {ConvertFrom-K12}
+catch {
+    write-error "Missing cmdlet: ConvertFrom-K12"
+    break   
+}
+
+# Test/create csv directory
 if (!(test-path ./csv-asm)) {
     new-item -itemtype directory -path ./csv-asm
 }
 
-$uri = $env:GOORS_URL # "https://or.localhost/ims/oneroster/v1p1"
+if (!$env:GOORS_TOKEN) {
+    $loginP = @{
+        uri = "$uri/login"
+        method = "POST"
+        body = "clientid=$ci&clientsecret=$cs"
+        SkipCertificateCheck = $true
+    }
+    $env:GOORS_TOKEN = Invoke-RestMethod @loginP
+}
+
 $getP = @{
     method               = "GET"
     headers              = @{"Authorization" = "bearer $ENV:GOORS_TOKEN" }
