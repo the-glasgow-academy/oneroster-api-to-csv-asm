@@ -43,11 +43,12 @@ $orgs | export-csv ./csv-asm/locations.csv
 
 
 # users
-$usersGet = invoke-restmethod @getP -uri "$uri/users?filter=status='active'"
+$usersGet = invoke-restmethod @getP -uri "$uri/users"
 # blacklist
 $blacklistUsers = $usersGet.Users |
     Select-Object *, @{ n = 'YearIndex'; e = { convertfrom-k12 -Year $_.grades -ToIndex } } |
     Where-Object {
+        ($_.status -eq 'inactive') -or
         ($_.email -eq 'NULL') -or
         ($_.familyName -like '*ACCOUNT*') -or
         ($_.YearIndex -ge 0 -and $_.YearIndex -le 3) -or 
@@ -57,6 +58,7 @@ $blacklistUsers = $usersGet.Users |
 # staff csv
 $usersTeachers = $usersGet.users |
     Where-Object role -eq 'teacher' |
+    Where-Object status -eq 'active' |
     Where-Object SourcedId -notin $blacklistUsers.sourcedId |
     Select-Object @{n = 'person_id'; e = { $_.SourcedId } },
     @{n = 'person_number'; e = { $null } },
@@ -72,6 +74,7 @@ $usersTeachers | export-csv ./csv-asm/staff.csv
 # students csv
 $userPupil = $usersGet.users |
     Where-Object role -eq 'student' |
+    Where-Object status -eq 'active' |
     Where-Object SourcedId -notin $blacklistUsers.sourcedId |
     Select-Object @{n = 'person_id'; e = { $_.SourcedId } },
     @{n = 'person_number'; e = { $null } },
@@ -141,7 +144,7 @@ $enrollmentsGet = invoke-restmethod @getP -uri "$uri/enrollments?filter=status='
 $enrollmentsStu = $enrollmentsGet.enrollments |
     Where-Object role -eq 'student' |
     Where-Object { $_.class.sourcedid -notin $blacklistClasses.sourcedId } |
-    Where-Object { $_.user.sourcedid -notin $blacklistUser.sourcedId } |
+    Where-Object { $_.user.sourcedid -notin $blacklistUsers.sourcedId } |
     select-object @{n = 'roster_id'; e = { $_.sourcedId } },
     @{n = 'class_id'; e = { $_.class.sourcedId } },
     @{n = 'student_id'; e = { $_.user.sourcedId } } 
@@ -151,5 +154,5 @@ $enrollmentsStu | export-csv ./csv-asm/rosters.csv
 $enrollmentsInst = $enrollmentsGet.enrollments |
     Where-Object role -eq 'teacher'
 
-$date = Get-Date -Format o
-Compress-Archive ./csv-asm/*.csv ./csv-asm-$d.zip
+$d = Get-Date -Format o
+Compress-Archive ./csv-asm/*.csv "./csv-asm-$d.zip"
