@@ -48,7 +48,7 @@ $usersGet = invoke-restmethod @getP -uri "$uri/users"
 $blacklistUsers = $usersGet.Users |
 Select-Object *, @{ n = 'YearIndex'; e = { convertfrom-k12 -Year $_.grades -ToIndex } } |
 Where-Object {
-    ($_.status -eq 'inactive') -or
+    ($_.status -eq 'tobedeleted') -or
     ($_.email -eq 'NULL') -or
     ($_.familyName -like '*ACCOUNT*') -or
     ($_.YearIndex -ge 0 -and $_.YearIndex -le 3) -or 
@@ -100,21 +100,12 @@ select-object @{n = 'course_id'; e = { $_.sourcedId } },
 $courses | export-csv ./csv-asm/courses.csv
 
 
-# roster csv 
 $enrollmentsGet = invoke-restmethod @getP -uri "$uri/enrollments?filter=status='active'"
 
-$enrollmentsStu = $enrollmentsGet.enrollments |
-Where-Object role -eq 'student' |
-Where-Object { $_.class.sourcedid -notin $blacklistClasses.sourcedId } |
-Where-Object { $_.user.sourcedid -notin $blacklistUsers.sourcedId } |
-select-object @{n = 'roster_id'; e = { $_.sourcedId } },
-@{n = 'class_id'; e = { $_.class.sourcedId } },
-@{n = 'student_id'; e = { $_.user.sourcedId } } 
-
-$enrollmentsStu | export-csv ./csv-asm/rosters.csv
-
+# instructors for classes
 $enrollmentsInst = $enrollmentsGet.enrollments |
-Where-Object role -eq 'teacher'
+Where-Object role -eq 'teacher' |
+Where-Object { $_.user.sourcedid -notin $blacklistUsers.sourcedId } 
 
 
 # classes csv
@@ -156,5 +147,17 @@ foreach ($c in $classes) {
 
 $classes | export-csv ./csv-asm/classes.csv
 
+# roster csv 
+$enrollmentsStu = $enrollmentsGet.enrollments |
+Where-Object role -eq 'student' |
+Where-Object { $_.class.sourcedid -notin $blacklistClasses.sourcedId } |
+Where-Object { $_.user.sourcedid -notin $blacklistUsers.sourcedId } |
+select-object @{n = 'roster_id'; e = { $_.sourcedId } },
+@{n = 'class_id'; e = { $_.class.sourcedId } },
+@{n = 'student_id'; e = { $_.user.sourcedId } } 
+
+$enrollmentsStu | export-csv ./csv-asm/rosters.csv
+
+# export
 $d = Get-Date -Format yyyy-MM-ddTHH-mm-ss
 Compress-Archive ./csv-asm/*.csv "./csv-asm-$d.zip"
