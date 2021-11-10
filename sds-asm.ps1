@@ -1,39 +1,23 @@
-#requires -psedition core
-$uri = $env:OR_URL# "https://or.localhost/ims/oneroster/v1p1"
-$ci = $env:OR_CI # API clientid
-$cs = $env:OR_CS # API clientsecret
-
-# check for CEDS conversion commandlet
-try { ConvertFrom-K12 }
-catch {
-    write-error "Missing cmdlet: ConvertFrom-K12"
-    break   
-}
+#Requires -Version 7
+#Requires -Modules @{ ModuleName="ps-oneroster"; ModuleVersion="1.0.0" }
 
 # Test/create csv directory
 if (!(test-path ./csv-asm)) {
     new-item -itemtype directory -path ./csv-asm
 }
 
-if (!$env:GOORS_TOKEN) {
-    $loginP = @{
-        uri                  = "$uri/login"
-        method               = "POST"
-        body                 = "clientid=$ci&clientsecret=$cs"
-        SkipCertificateCheck = $true
-    }
-    $env:GOORS_TOKEN = Invoke-RestMethod @loginP
+$connectP = @{
+    Domain = $env:OR_URL
+    ClientId = $env:OR_CI
+    ClientSecret = $env:OR_CS
+    Scope = "roster-core.readonly"
+    Provider = "libre-oneroster"
 }
 
-$getP = @{
-    method               = "GET"
-    headers              = @{"Authorization" = "bearer $ENV:GOORS_TOKEN" }
-    FollowRelLink        = $true
-    SkipCertificateCheck = $true
-}
+Connect-OROneroster @connectP
 
-# locations csv
-$orgsGet = invoke-restmethod @getP -uri "$uri/orgs"
+# locations
+$orgsGet = Get-ORData -Endpoint "orgs" -All
 
 $orgs = $orgsGet.orgs |
 select-object @{n = 'location_id'; e = { $_.sourcedid } },
@@ -43,10 +27,10 @@ $orgs | export-csv ./csv-asm/locations.csv
 
 
 # users
-$usersGet = invoke-restmethod @getP -uri "$uri/users"
+$usersGet = Get-ORData -Endpoint "users" -All
 # blacklist
 $blacklistUsers = $usersGet.Users |
-Select-Object *, @{ n = 'YearIndex'; e = { convertfrom-k12 -Year $_.grades -ToIndex } } |
+Select-Object *, @{ n = 'YearIndex'; e = { (ConvertFrom-ORK12 -K12 $_.grades[0]).index } } |
 Where-Object {
     ($_.status -eq 'tobedeleted') -or
     ($_.email -eq 'NULL') -or
@@ -90,7 +74,7 @@ Select-Object @{n = 'person_id'; e = { $_.SourcedId } },
 $userPupil | export-csv ./csv-asm/students.csv
 
 # courses csv
-$coursesGet = invoke-restmethod @getP -uri "$uri/courses?filter=courseCode='TG'"
+$coursesGet = Get-ORData -Endpoint "courses" -Filter "courseCode='TG'" -All
 $courses = $coursesGet.courses |
 select-object @{n = 'course_id'; e = { $_.sourcedId } },
 @{n = 'course_number'; e = { $_.courseCode } },
@@ -100,7 +84,7 @@ select-object @{n = 'course_id'; e = { $_.sourcedId } },
 $courses | export-csv ./csv-asm/courses.csv
 
 
-$enrollmentsGet = invoke-restmethod @getP -uri "$uri/enrollments?filter=status='active'"
+$enrollmentsGet = Get-ORData -Endpoint "enrollments" -Filter "status='active'" -All
 
 # instructors for classes
 $enrollmentsInst = $enrollmentsGet.enrollments |
@@ -109,13 +93,13 @@ Where-Object { $_.user.sourcedid -notin $blacklistUsers.sourcedId }
 
 
 # classes csv
-$classesGet = invoke-restmethod @getP -uri "$uri/classes?filter=status='active'"
+$classesGet = Get-ORData -Endpoint "classes" -Filter "status='active'" -All
 # blacklist
 $blacklistClasses = $classesGet.classes | 
 Where-Object {
     { $_.classType -ne 'homeroom' }
 } |
-Select-Object *, @{ n = 'YearIndex'; e = { convertfrom-k12 -Year $_.grades -ToIndex } } |
+Select-Object *, @{ n = 'YearIndex'; e = { (ConvertFrom-ORK12 -K12 $_.grades[0]).index } } |
 Where-Object { $_.YearIndex -le 3 }
 
 #classes
@@ -159,5 +143,5 @@ select-object @{n = 'roster_id'; e = { $_.sourcedId } },
 $enrollmentsStu | export-csv ./csv-asm/rosters.csv
 
 # export
-$d = Get-Date -Format yyyy-MM-ddTHH-mm-ss
+$d = Get-Date -Format FileDateTime
 Compress-Archive ./csv-asm/*.csv "./csv-asm-$d.zip"

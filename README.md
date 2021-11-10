@@ -9,11 +9,11 @@ Requires: Powershell Core
 
 ```
 $VerbosePreference = 'continue'
-$env:GOORS_URL = 'https://my-oneroster-api/ims/oneroster/v1p1'
-$env:GOORS_CI = read-host #clientid
-$env:GOORS_CS = read-host #clientsecret
+$env:OR_URL = 'https://my-oneroster-api.com'
+$env:OR_CI = read-host #clientid
+$env:OR_CS = read-host #clientsecret
+$env:OR_SCOPE = 'roster-core.readonly'
 
-. ConvertFrom-K12.ps1
 ./sds-asm.ps1
 ```
 
