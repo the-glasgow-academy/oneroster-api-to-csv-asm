@@ -96,15 +96,14 @@ Where-Object { $_.user.sourcedid -notin $blacklistUsers.sourcedId }
 $classesGet = Get-ORData -Endpoint "classes" -Filter "status='active'" -All
 # blacklist
 $blacklistClasses = $classesGet.classes | 
-Where-Object {
-    { $_.classType -ne 'homeroom' }
-} |
 Select-Object *, @{ n = 'YearIndex'; e = { (ConvertFrom-ORK12 -K12 $_.grades[0]).index } } |
-Where-Object { $_.YearIndex -le 3 }
+Where-Object {
+    ($_.classType -ne 'homeroom') -or
+    ($_.YearIndex -le 3)
+}
 
 #classes
 $classes = $classesGet.classes |
-Where-Object classType -eq 'homeroom' |
 Where-object sourcedid -notin $blacklistClasses.sourcedId | 
 select-object @{n = 'class_id'; e = { $_.sourcedId } },
 @{n = 'class_number'; e = { $_.classCode } },
